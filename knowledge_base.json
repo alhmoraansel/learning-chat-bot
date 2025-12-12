@@ -1,0 +1,41 @@
+{
+  "qa_pairs": [
+    {
+      "q": "hello",
+      "a": "Hey there! How can I help you?"
+    },
+    {
+      "q": "how are you",
+      "a": "I'm just a script, but I'm functioning perfectly!"
+    },
+    {
+      "q": "hey",
+      "a": "hello"
+    },
+    {
+      "q": "whats up",
+      "a": "i am doing great thanks! hbu"
+    },
+    {
+      "q": "exit",
+      "a": "end"
+    },
+    {
+      "q": "end",
+      "a": "end"
+    },
+    {
+      "q": "huh",
+      "a": "what?"
+    }
+  ],
+  "user_facts": {},
+  "history": [
+    "dream",
+    "hey",
+    "whats up",
+    "im good too",
+    "okay s what",
+    "huh"
+  ]
+}
