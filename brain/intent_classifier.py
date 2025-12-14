@@ -21,9 +21,7 @@ class IntentClassifier:
     def train_baseline(self):
         print("BRAIN: Training robust Intent Classifier (Synthetic generation)...")
         
-        # --- Synthetic Data Generator ---
-        # We generate thousands of examples using templates to ensure robustness.
-        
+        # --- Synthetic Data Generators ---
         entities = ["sun", "moon", "gravity", "python", "code", "life", "love", "ai", "robots", "space", "time", "history", "math", "logic", "biology", "cats", "dogs", "food", "water", "earth"]
         names = ["bob", "alice", "john", "jane", "sam", "alex", "charlie", "max", "user", "human"]
         foods = ["pizza", "pasta", "sushi", "burgers", "tacos", "salad", "steak", "curry", "ice cream", "cake"]
@@ -48,7 +46,7 @@ class IntentClassifier:
             for a in adjectives: examples.append(f"i hate {a} things")
             # Contrastive / Complex
             examples.extend(["call me master", "i am a programmer", "i live in london", "remember that sky is blue", "note that birds fly"])
-            return examples * 15 # Boost count
+            return examples * 15 
 
         def generate_qa_search():
             starts = ["what is", "tell me about", "how does", "explain", "define", "who is", "why is", "meaning of"]
@@ -57,7 +55,6 @@ class IntentClassifier:
                 for e in entities:
                     examples.append(f"{s} {e}")
                     examples.append(f"{s} the {e}")
-            # Complex queries
             examples.extend(["how do planes fly", "why is the sky blue", "capital of france", "distance to mars"])
             return examples
 
@@ -80,23 +77,18 @@ class IntentClassifier:
         }
 
         X, y = [], []
-        print(f"BRAIN: Dataset stats:")
         for label, phrases in data.items():
-            # Deduplicate and shuffle
-            phrases = list(set(phrases))
-            print(f"  - {label}: {len(phrases)} examples")
+            phrases = list(set(phrases)) # Dedup
             X.extend(phrases)
             y.extend([label]*len(phrases))
         
         # --- Model Training with Calibration ---
-        print("BRAIN: Encoding vectors...")
         vecs = self.encoder.model.encode(X)
         
-        print("BRAIN: Fitting Calibrated Classifier...")
-        # 1. Class Weights: 'balanced' handles the uneven counts (e.g. fewer META vs QA)
+        # 1. Balanced Class Weights
         base_clf = LogisticRegression(class_weight='balanced', random_state=42, max_iter=500)
         
-        # 2. Calibration: Sigmoid (Platt Scaling) provides better probability estimates than raw LR
+        # 2. Probability Calibration (Sigmoid/Platt Scaling)
         calibrated_clf = CalibratedClassifierCV(estimator=base_clf, method='sigmoid', cv=5)
         
         calibrated_clf.fit(vecs, y)
@@ -108,7 +100,6 @@ class IntentClassifier:
     def predict(self, vector):
         if not self.model: return "UNKNOWN", 0.0
         vector = vector.reshape(1, -1)
-        # Calibrated classifier returns calibrated probabilities
         pred = self.model.predict(vector)[0]
         probs = self.model.predict_proba(vector)[0]
         return pred, max(probs)

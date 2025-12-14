@@ -20,7 +20,6 @@ class ActClassifier:
     def train_baseline(self):
         print("BRAIN: Training robust Act Classifier (Synthetic generation)...")
         
-        # Generators
         def gen_affirm():
             bases = ["yes", "yeah", "yep", "correct", "right", "true", "sure", "ok", "okay", "fine", "indeed", "absolutely", "definitely"]
             return [f"{b}{p}" for b in bases for p in ["", ".", "!"]]
@@ -47,7 +46,7 @@ class ActClassifier:
             queries = ["what about x", "how big is it", "why", "when"]
             return [f"{c} {q}" for c in connectors for q in queries]
 
-        def gen_emotion(): # New class for "awesome", "cool", etc.
+        def gen_emotion():
             words = ["awesome", "cool", "great", "wow", "amazing", "nice", "perfect", "excellent", "brilliant", "wonderful", "thanks", "thank you"]
             return [f"{w}{p}" for w in words for p in ["", "!", "!!"]]
 
@@ -58,21 +57,17 @@ class ActClassifier:
             "GIVE_INFO": gen_give_info(),
             "CLARIFY": gen_clarify(),
             "FOLLOWUP": gen_followup(),
-            "EMOTION": gen_emotion() # Explicit Smalltalk/Emotion category
+            "EMOTION": gen_emotion() # New Class
         }
 
         X, y = [], []
-        print(f"BRAIN: Act Dataset stats:")
         for label, phrases in data.items():
             phrases = list(set(phrases))
-            print(f"  - {label}: {len(phrases)} examples")
             X.extend(phrases)
             y.extend([label]*len(phrases))
         
-        print("BRAIN: Encoding Act vectors...")
         vecs = self.encoder.model.encode(X)
         
-        print("BRAIN: Fitting Calibrated Act Classifier...")
         base_clf = LogisticRegression(class_weight='balanced', random_state=42, max_iter=500)
         calibrated_clf = CalibratedClassifierCV(estimator=base_clf, method='sigmoid', cv=5)
         

@@ -3,7 +3,8 @@ from structures import PipelineState
 
 class ReasoningLayer:
     def process(self, state: PipelineState) -> PipelineState:
-        # 1. Fact Extraction
+        # 1. Fact Extraction (Highest Priority)
+        # Prevents "I hate pasta" from being treated as a Denial/Contradiction
         if state.features["has_fact_pattern"] or state.intent == "FACT_TEACH":
             m_pref = re.search(r"\bi (like|love|hate|dislike)s? (.+)", state.raw_text, re.IGNORECASE)
             if m_pref:
@@ -13,7 +14,13 @@ class ReasoningLayer:
                 
                 existing_val = state.user_profile.facts.get(key)
                 if existing_val and existing_val != verb:
-                    state.plan.append({"op": "CONFIRM_FACT", "key": key, "val": verb, "old_val": existing_val, "obj_name": obj})
+                    state.plan.append({
+                        "op": "CONFIRM_FACT", 
+                        "key": key, 
+                        "val": verb, 
+                        "old_val": existing_val, 
+                        "obj_name": obj
+                    })
                 else:
                     state.plan.append({"op": "SAVE_FACT", "key": key, "val": verb})
                 return state
@@ -29,14 +36,15 @@ class ReasoningLayer:
                     state.plan.append({"op": "SAVE_FACT", "key": key, "val": val})
                 return state
 
-        # 2. Self-Correction
+        # 2. Self-Correction (Only if NOT a fact teach)
         if state.features["is_contradiction"] and state.intent != "FACT_TEACH":
             state.thought_trace.append("Reasoning: Contradiction detected. Initiating repair.")
             state.plan.append({"op": "REPAIR_MEMORY"})
             return state
 
-        # 3. Smalltalk
-        if state.act == "AFFIRM" and state.intent == "UNKNOWN":
+        # 3. Smalltalk / Emotion / Affirmation
+        # If the bot doesn't know the intent but the user is just saying "Cool" or "Thanks"
+        if (state.act == "AFFIRM" or state.act == "EMOTION") and state.intent == "UNKNOWN":
              state.plan.append({"op": "RESPOND", "text": "Glad to hear it!", "style": "SMALLTALK"})
              return state
 
@@ -49,7 +57,7 @@ class ReasoningLayer:
                 state.plan.append({"op": "SYNTHESIZE"}) 
                 return state
 
-        # 5. Default
+        # 5. Default Plan
         if state.intent == "QA_SEARCH" or state.act == "REQUEST_INFO":
             state.plan.append({"op": "RETRIEVE", "query_vector": state.query_vector})
         elif state.intent == "FAREWELL":
